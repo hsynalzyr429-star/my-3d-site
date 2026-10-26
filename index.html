@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="description" content="حوّل صورة إلى مجسّم ثلاثي الأبعاد بخامات PBR عبر نموذج ذكاء اصطناعي يعمل على GPU في الخادم.">
+  <meta name="api-base" content="">
+  <title>AI 3D Studio — تحويل الصور إلى مجسمات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/"}}
+  </script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="الصفحة الرئيسية">
+      <span class="brand-mark"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 34 11v18L20 37 6 29V11Z"/><path d="m13 15 7-4 7 4v10l-7 4-7-4Z"/><path d="M20 11v18M13 15l14 10M27 15 13 25"/></svg></span>
+      <span><b>AI 3D Studio</b><small>Image → 3D asset</small></span>
+    </a>
+    <nav class="topnav" aria-label="القائمة الرئيسية"><a class="active" href="/">الاستوديو</a><a href="/guide">دليل الصور</a><a href="/privacy">الخصوصية</a></nav>
+    <button id="accessToggle" class="icon-btn" type="button" aria-label="إعدادات الوصول" title="إعدادات الوصول"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 2.9-.2-.1a1.7 1.7 0 0 0-1.9.2l-.1.1h-3.4l-.1-.2a1.7 1.7 0 0 0-1.5-1 1.7 1.7 0 0 0-1.4.8l-.1.2-3-1.7.1-.2a1.7 1.7 0 0 0-.3-1.9l-.1-.1v-3.4l.2-.1a1.7 1.7 0 0 0 .8-1.4 1.7 1.7 0 0 0-.8-1.5l-.2-.1 1.7-2.9.2.1a1.7 1.7 0 0 0 1.9-.3l.1-.1h3.4l.1.2a1.7 1.7 0 0 0 1.4.8 1.7 1.7 0 0 0 1.5-.8l.1-.2 2.9 1.7-.1.2a1.7 1.7 0 0 0 .3 1.9l.1.1v3.4z"/></svg></button>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="live-dot"></span> توليد حقيقي على GPU • تصدير GLB</div>
+        <h1>من صورة مسطّحة<br><span>إلى أصل ثلاثي الأبعاد</span></h1>
+        <p>ارفع صورة واضحة، جهّز قصّ الجسم، ثم أنشئ مجسّماً بخامة ثلاثية الأبعاد. عملية التوليد تتم في الخادم، وليس داخل هاتفك.</p>
+        <div class="hero-tags"><span>خامات PBR</span><span>معاينة تفاعلية</span><span>تنزيل GLB</span></div>
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <div class="orbit-ring ring-a"></div><div class="orbit-ring ring-b"></div>
+        <div class="orbit-core"><svg viewBox="0 0 120 120"><defs><linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a5f3fc"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs><path d="M60 8 100 31v58l-40 23L20 89V31Z" fill="url(#metal)" fill-opacity=".16" stroke="url(#metal)" stroke-width="2"/><path d="m60 28 23 13v28L60 82 37 69V41Z" fill="url(#metal)" fill-opacity=".35" stroke="url(#metal)" stroke-width="2"/><path d="M60 28v54M37 41l46 28M83 41 37 69" stroke="#dbeafe" stroke-opacity=".8" stroke-width="1.5"/></svg></div>
+        <span class="orbit-label label-top">3D / PBR</span><span class="orbit-label label-bottom">GPU inference</span>
+      </div>
+    </section>
+
+    <div id="accessPanel" class="access-panel hidden">
+      <label for="accessKey">رمز الوصول الخاص بالخادم</label>
+      <div class="access-line"><input id="accessKey" type="password" autocomplete="current-password" placeholder="أدخل APP_ACCESS_KEY"><button id="saveAccess" class="btn btn-secondary" type="button">تطبيق</button></div>
+      <p>يظهر هذا الحقل عند حماية الخادم برمز وصول. لا تضع أسراراً داخل ملفات الواجهة.</p>
+    </div>
+
+    <div class="workspace">
+      <section class="panel input-panel">
+        <div class="panel-heading"><div><span class="step-index">01</span><h2>الصورة المرجعية</h2></div><span class="muted-pill">PNG · JPG · WEBP</span></div>
+        <p class="panel-intro">استخدم صورة واحدة واضحة للجسم كاملاً. إذا كانت صورتك لوحة زوايا مركّبة، قصّ لوحة واحدة فقط قبل التوليد.</p>
+        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+        <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="رفع صورة">
+          <div id="uploadPlaceholder" class="upload-placeholder">
+            <div class="upload-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v3h16v-3"/></svg></div>
+            <b>اسحب الصورة إلى هنا</b><span>أو اختر ملفاً من جهازك</span>
+            <div class="drop-buttons"><button id="chooseBtn" class="btn btn-secondary" type="button">اختيار صورة</button><button id="cameraBtn" class="btn btn-ghost" type="button">التقاط بالكاميرا</button></div>
+          </div>
+          <div id="cropWrap" class="crop-wrap hidden"><img id="cropImage" alt="الصورة التي ستقصّها" /></div>
+        </div>
+        <div id="cropTools" class="crop-tools hidden"><span class="crop-tip"><svg viewBox="0 0 24 24"><path d="M7 3v14a2 2 0 0 0 2 2h12M3 7h14a2 2 0 0 1 2 2v12"/></svg> اسحب إطار القص حول زاوية واحدة كاملة</span><div class="crop-actions"><button id="rotateBtn" type="button" class="mini-btn">↻ تدوير</button><button id="resetCropBtn" type="button" class="mini-btn">إعادة</button><button id="applyCropBtn" type="button" class="btn btn-primary">اعتماد القص</button></div></div>
+        <div id="imageReady" class="image-ready hidden"><span class="success-mark">✓</span><img id="readyThumbnail" class="ready-thumb" alt="معاينة القص المعتمد"><div><b>الصورة جاهزة للتوليد</b><small id="readyInfo">تم تجهيز الصورة</small></div><button id="changeImageBtn" type="button" class="mini-btn">تغيير</button></div>
+        <div class="quality-block">
+          <div class="section-title-row"><h3>دقة التوليد</h3><span class="hint-tag">تؤثر في زمن المعالجة</span></div>
+          <div class="quality-options">
+            <label class="quality-option"><input type="radio" name="resolution" value="512"><span class="quality-card"><b>سريع</b><strong>512³</strong><small>للتجربة الأولية</small></span></label>
+            <label class="quality-option"><input type="radio" name="resolution" value="1024" checked><span class="quality-card recommended"><em>موصى به</em><b>احترافي</b><strong>1024³</strong><small>توازن جودة ووقت</small></span></label>
+            <label class="quality-option"><input type="radio" name="resolution" value="1536"><span class="quality-card"><b>أقصى</b><strong>1536³</strong><small>يحتاج GPU قويّاً</small></span></label>
+          </div>
+        </div>
+        <details class="advanced-settings"><summary>إعدادات متقدمة <span>+</span></summary>
+          <div class="advanced-grid"><label>كثافة المجسم<select id="faceCount"><option value="100000">خفيف — 100 ألف وجه</option><option value="300000" selected>متوازن — 300 ألف وجه</option><option value="500000">تفاصيل عالية — 500 ألف وجه</option><option value="800000">تفاصيل قصوى — 800 ألف وجه</option></select></label><label>دقة الخامة<select id="textureSize"><option value="1024">1024 px</option><option value="2048" selected>2048 px</option><option value="4096">4096 px</option></select></label><label class="seed-field">Seed (اختياري)<input id="seedInput" type="number" min="0" max="2147483647" placeholder="فارغ = عشوائي"></label></div>
+          <p class="advanced-note">عدد الأوجه ودقة الخامة يتحكمان بحجم الملف وسلاسة العرض. رفعها لا يضمن أن تفاصيل الصورة الأصلية ستُعاد حرفياً.</p>
+        </details>
+        <div class="privacy-line"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3"/></svg><span>تُحفظ ملفات المهمة مؤقتاً على الخادم وتُنظّف بعد 24 ساعة.</span><a href="/privacy">التفاصيل</a></div>
+        <button id="generateBtn" class="btn btn-generate" type="button" disabled><span class="generate-symbol">✦</span><span>إنشاء مجسّم بالذكاء الاصطناعي</span><span class="btn-arrow">←</span></button>
+        <p class="server-note" id="serverNote">جارٍ الاتصال بخادم التوليد…</p>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="panel-heading"><div><span class="step-index">02</span><h2>المعاينة ثلاثية الأبعاد</h2></div><span id="viewerStatus" class="status-pill"><i></i> بانتظار صورة</span></div>
+        <div id="viewerFrame" class="viewer-frame">
+          <div id="viewerEmpty" class="viewer-empty"><div class="empty-cube"><svg viewBox="0 0 100 100"><path d="m50 7 37 21v44L50 93 13 72V28Z"/><path d="M13 28 50 50l37-22M50 50v43"/><path d="m31 18 37 22v22L31 41Z" opacity=".35"/></svg></div><b>ستظهر النتيجة هنا</b><p>بعد اكتمال التوليد، اسحب لتدوير المجسّم واستخدم اللمس أو العجلة للتكبير.</p></div>
+          <canvas id="modelCanvas" class="hidden" aria-label="عارض المجسم ثلاثي الأبعاد"></canvas>
+          <div id="viewerControls" class="viewer-controls hidden"><button id="resetViewBtn" class="viewer-tool" type="button" title="إعادة زاوية العرض">⟳</button><span>اسحب للتدوير · قرّب بإصبعين</span><button id="wireframeBtn" class="viewer-tool" type="button" title="تبديل عرض الشبكة">◇</button></div>
+          <div id="viewerLoading" class="viewer-loading hidden"><span class="spinner"></span><b id="viewerLoadingTitle">جاري تحميل المجسّم…</b></div>
+        </div>
+        <div id="jobPanel" class="job-panel hidden"><div class="job-top"><div><span class="job-kicker">حالة التوليد</span><b id="jobTitle">في قائمة الانتظار</b></div><span id="jobBadge" class="job-badge">QUEUED</span></div><div class="progress-track"><div id="progressFill" class="progress-fill"></div></div><div class="job-bottom"><span id="jobMessage">ستبدأ المهمة قريباً.</span><span id="jobPercent">2%</span></div><div id="indeterminateNote" class="indeterminate-note hidden"><span class="spinner tiny"></span> النموذج لا يوفّر نسبة دقيقة لهذه المرحلة؛ المؤشر متحرك للدلالة على استمرار العمل.</div></div>
+        <div id="resultActions" class="result-actions hidden"><div class="result-meta"><span class="success-mark">✓</span><div><b>المجسّم جاهز</b><small id="resultDetails">GLB · خامات PBR</small></div></div><button id="downloadBtn" class="btn btn-primary" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> حفظ المجسّم .GLB</button></div>
+        <div class="viewer-features"><div><span class="feature-icon">↻</span><div><b>تدوير حر</b><small>اسحب بإصبعك</small></div></div><div><span class="feature-icon">⌕</span><div><b>تكبير وتصغير</b><small>إيماءة القرص</small></div></div><div><span class="feature-icon">⬡</span><div><b>ملف قياسي</b><small>GLB مع الخامات</small></div></div></div>
+      </section>
+    </div>
+
+    <section class="workflow-strip"><div class="workflow-title"><span class="step-index">03</span><div><b>طريقة العمل</b><small>من الصورة إلى ملف قابل للاستخدام</small></div></div><div class="workflow-steps"><div><span>1</span><b>قصّ الجسم</b><small>استبعد اللوحات والنصوص والخلفية الزائدة.</small></div><div class="workflow-connector"></div><div><span>2</span><b>توليد الشكل والخامة</b><small>يشغّل الخادم نموذج TRELLIS.2 على GPU.</small></div><div class="workflow-connector"></div><div><span>3</span><b>معاينة وتنزيل</b><small>افحص النتيجة ثم نزّل GLB.</small></div></div></section>
+
+    <footer class="site-footer"><span>AI 3D Studio · واجهة تجريبية تعتمد TRELLIS.2</span><div><a href="/guide">كيف أحسّن النتيجة؟</a><a href="/privacy">الخصوصية والاستضافة</a></div></footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/static/viewer.js"></script>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
